@@ -245,9 +245,12 @@ function renderModel() {
       <td class="${edge != null && Math.abs(edge) >= 2 ? "best" : ""}">${edge == null ? "—" : (edge > 0 ? "+" : "") + edge}</td>
       <td>${Math.round(g.model.total)}</td><td>${ov ?? "—"}</td></tr>`;
   };
-  return `<p class="explain">Our own college basketball ratings: opponent-adjusted offense, defense and pace for every team, from this season's box scores. A pick needs the best available spread to beat our projection by 2+ points. <b>Tested on ${bt.games} games last season:</b> average miss ${bt.mae_model} pts vs. ${bt.mae_market} for the closing line; ${bt.ats_edge2} (${bt.ats_edge2_pct}%) against the spread with 2+ pts of edge. Strongest when the market agrees. Ratings through ${esc(info.asof)}.</p>
+  return `<p class="explain">Our own college basketball ratings: opponent-adjusted offense, defense and pace for every team, from this season's box scores. A pick needs the best available spread to beat our projection by 2 to 6 points. <b>Tested on ${bt.games} games last season:</b> average miss ${bt.mae_model} pts vs. ${bt.mae_market} for the closing line; ${bt.ats_edge2} (${bt.ats_edge2_pct}%) against the spread with 2-6 pts of edge (Jan-Mar). Strongest when the market agrees. Ratings through ${esc(info.asof)}.</p>
   <h2 class="sec">Model picks <span>${picks.length}</span></h2>
-  ${picks.length ? `<div class="grid">${picks.map(modelCard).join("")}</div>` : `<div class="empty small">No spreads 2+ points off our numbers right now.</div>`}
+  ${picks.length ? `<div class="grid">${picks.map(modelCard).join("")}</div>`
+    : info.typical_games < info.min_games
+      ? `<div class="empty small">Model picks start once teams have played about ${info.min_games} games (around early January); teams have played about ${info.typical_games} so far. In testing, early-season picks went ${esc(bt.early || "below .500")}. Projections below are for reference.</div>`
+      : `<div class="empty small">No spreads 2-6 points off our numbers right now.</div>`}
   <h2 class="sec">All projections <span>${games.length}</span></h2>
   <p class="explain">Spreads shown for the home team. Edge = market minus model (positive = value on the home team). N = neutral site.</p>
   <div class="card scroll"><table><tr><th>Game</th><th>Model</th><th>Market</th><th>Edge</th><th>Model total</th><th>Market total</th></tr>
