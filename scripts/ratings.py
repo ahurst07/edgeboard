@@ -205,7 +205,7 @@ def main():
     m["sd_margin"], m["sd_total"] = 11.1, 17.4   # from the 2025-26 backtest
     m["backtest"] = {"games": 1190, "mae_model": 8.8, "mae_market": 8.65, "ats_edge2": "270-238",
                      "ats_edge2_pct": 53.1, "season": "2025-26 (Jan-Mar)",
-                     "early": "110-125 (47%) in Nov-Dec, so picks wait until teams have ~12 games"}
+                     "early": "110-125 (47%) in Nov-Dec"}
     out = Path(args.root) / "data" / "ratings_cbb.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(m, separators=(",", ":")))

@@ -82,8 +82,9 @@ def evaluate(event, shop, proj, cfg, model, market_plays, trend_fn):
     mc = cfg["model"]
     rc = cfg["recommend"]
     picks = []
-    if not proj or proj["games"] < mc["min_team_games"]:
+    if not proj:
         return picks
+    ready = proj["games"] >= mc["min_team_games"]
     home, away = event["home_team"], event["away_team"]
     sd = model.m.get("sd_margin", 11.1)
     rows = shop.get("spreads", {})
@@ -115,11 +116,16 @@ def evaluate(event, shop, proj, cfg, model, market_plays, trend_fn):
             why.append(f"Sharp line moved {trend:g} pts this way")
         if proj["neutral"]:
             why.append("Neutral-site game (no home-court edge)")
+        if not ready:
+            why.append(f"Early season: these teams have only {proj['games']}+ games each, so treat this as "
+                       f"something to look into, not a bet")
         picks.append({**p, "book": best["book"], "point": best["point"], "odds": best["odds"],
                       "edge_pts": best["edge"], "model_line": round(model_line, 1),
                       "cover_prob": round(cover, 3), "ev": round(cover * dec(best["odds"]) - 1, 4),
-                      "tier": "strong" if agree or trend >= rc["with_move_boost"] else "model",
-                      "units": 1.0 if agree else 0.5, "why": why, "trend": trend})
+                      "tier": ("lean" if not ready else
+                               "strong" if agree or trend >= rc["with_move_boost"] else "model"),
+                      "units": 0 if not ready else (1.0 if agree else 0.5), "why": why, "trend": trend,
+                      "market_agrees": bool(agree)})
     return picks
 
 
