@@ -64,9 +64,9 @@
   "max_snapshots_per_game": 120,
   "archive_after_hours": 6,
   "model": {
-    "_notes": "College basketball ratings model. A model pick needs the best line to beat our projected spread by min_edge points. Bigger gaps than max_edge usually mean news the model can't see (injuries), so they're skipped.",
+    "_notes": "College basketball ratings model. Picks need the best line to beat our projected spread by min_edge..max_edge points, and both teams to have min_team_games D1 games (early-season testing lost money, so picks start around January).",
     "min_edge": 2.0,
-    "min_team_games": 3,
+    "min_team_games": 12,
     "max_edge": 6.0
   }
 }
