@@ -66,9 +66,11 @@
   "max_snapshots_per_game": 120,
   "archive_after_hours": 6,
   "model": {
-    "_notes": "College basketball ratings model. Picks need the best line to beat our projected spread by min_edge..max_edge points, and both teams to have min_team_games D1 games (early-season testing lost money, so picks start around January).",
+    "_notes": "College basketball ratings model. Picks need the best line to beat our projected spread by min_edge..max_edge points, and both teams to have min_team_games D1 games (early-season testing lost money, so picks start around January). Totals are always shown as leans (no tested edge on totals); they need total_min_edge..total_max_edge points of difference.",
     "min_edge": 2.0,
     "min_team_games": 12,
-    "max_edge": 6.0
+    "max_edge": 6.0,
+    "total_min_edge": 4.0,
+    "total_max_edge": 10.0
   }
 }
