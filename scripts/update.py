@@ -92,7 +92,7 @@ def fetch_live(sport_key, sport_cfg, cfg, api_key):
     t0 = now_utc()
     params = {
         "apiKey": api_key,
-        "bookmakers": ",".join(cfg["bookmakers"][:10]),  # <=10 books = 1 region of cost
+        "bookmakers": ",".join(cfg["bookmakers"]),  # each group of 10 books = 1 region of cost
         "markets": ",".join(cfg["markets"]),
         "oddsFormat": "decimal",
         "dateFormat": "iso",
@@ -452,7 +452,7 @@ def main():
             events, remaining = fetch_sample(sport_key, run_cfg, run_index), None
         else:
             known = meta.get("credits_remaining")
-            cost = len(run_markets)
+            cost = len(run_markets) * -(-len(cfg["bookmakers"]) // 10)
             if known is not None and known - cost < cfg["min_credits_reserve"]:
                 print(f"[skip] {sport_key}: only {known} credits left (reserve {cfg['min_credits_reserve']})")
                 continue
