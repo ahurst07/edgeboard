@@ -126,7 +126,47 @@ def evaluate(event, shop, proj, cfg, model, market_plays, trend_fn):
                                "strong" if agree or trend >= rc["with_move_boost"] else "model"),
                       "units": 0 if not ready else (1.0 if agree else 0.5), "why": why, "trend": trend,
                       "market_agrees": bool(agree)})
+    picks.extend(totals(event, shop, proj, cfg, model, market_plays, trend_fn, ready))
     return picks
+
+
+def totals(event, shop, proj, cfg, model, market_plays, trend_fn, ready):
+    """Total leans: always low confidence (the backtest found no edge on totals)."""
+    mc, rc = cfg["model"], cfg["recommend"]
+    sd = model.m.get("sd_total", 17.4)
+    rows = shop.get("totals", {})
+    out = []
+    for side in ("Over", "Under"):
+        best = None
+        for r in rows.get(side, []):
+            if r["book"] == "Pinnacle" or r["point"] is None or r["odds"] is None:
+                continue
+            if not (rc["odds_min"] <= r["odds"] <= rc["odds_max"]):
+                continue
+            edge = (proj["total"] - r["point"]) if side == "Over" else (r["point"] - proj["total"])
+            if best is None or edge > best["edge"] or (edge == best["edge"] and r["odds"] > best["odds"]):
+                best = {**r, "edge": round(edge, 1)}
+        if not best or not (mc.get("total_min_edge", 4) <= best["edge"] <= mc.get("total_max_edge", 10)):
+            continue
+        p = {"event_id": event["id"], "sport": "CBB", "commence": event["commence_time"],
+             "home": event["home_team"], "away": event["away_team"], "market": "totals", "side": side}
+        trend = trend_fn(p)
+        if trend <= -rc["against_move_block"] * 2:
+            continue
+        agree = next((m for m in market_plays if m["market"] == "totals" and m["side"] == side), None)
+        why = [f"Model projects {proj['total']:g} total points; best line is {side} {best['point']:g}"
+               f" ({best['edge']:g} pts of value)"]
+        if agree:
+            why.append(f"Market agrees: +{agree['ev'] * 100:.1f}% EV vs. Pinnacle at {agree['book']}")
+        if trend >= rc["with_move_boost"]:
+            why.append(f"Total has moved {trend:g} pts toward the {side}")
+        why.append("Totals are leans only: last season the model showed no edge on totals")
+        cover = phi(best["edge"] / sd)
+        out.append({**p, "book": best["book"], "point": best["point"], "odds": best["odds"],
+                    "edge_pts": best["edge"], "model_line": proj["total"], "cover_prob": round(cover, 3),
+                    "ev": round(cover * dec(best["odds"]) - 1, 4), "tier": "lean", "units": 0,
+                    "why": why, "trend": trend, "market_agrees": bool(agree)})
+    return out
 
 
 def side_short(t):
