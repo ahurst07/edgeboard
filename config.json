@@ -1,5 +1,5 @@
 {
-  "_notes": "Edit these settings any time. Costs on The Odds API = markets x sports per run (10 or fewer bookmakers count as 1 region). Empty responses (sport out of season) are free.",
+  "_notes": "Costs on The Odds API = markets x sports x bookmaker groups per run (each group of up to 10 books counts as 1 region). 12 books = 2 groups. Empty responses (sport out of season) are free. Paid 20K plan.",
   "markets": [
     "spreads",
     "totals"
@@ -14,7 +14,9 @@
     "hardrockbet",
     "bovada",
     "betonlineag",
-    "lowvig"
+    "lowvig",
+    "williamhill_us",
+    "fanatics"
   ],
   "sharp_book": "pinnacle",
   "sports": {
@@ -60,7 +62,7 @@
   },
   "max_off_number": 1.5,
   "min_books_for_consensus": 4,
-  "min_credits_reserve": 12,
+  "min_credits_reserve": 200,
   "max_snapshots_per_game": 120,
   "archive_after_hours": 6,
   "model": {
