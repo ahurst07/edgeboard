@@ -127,7 +127,7 @@ def fit(rows, asof, prior=None, hca_prior=0.0, hca_ridge=0.01):
     P = t0 + spsolve(At, Xt.T @ (w * yt))
     P -= P.mean()
 
-    games = pd.concat([rows["team_id"], rows["opponent_team_id"]]).value_counts()
+    games = rows.groupby("team_id")["game_id"].nunique()
     names = dict(zip(rows["team_id"], rows["team_display_name"]))
     names.update({k: v for k, v in zip(rows["opponent_team_id"], rows["opponent_team_display_name"])
                   if k not in names})
@@ -203,8 +203,9 @@ def main():
     m = build(season_for(today), today, args.data_dir)
     m["upcoming"] = upcoming(season_for(today), today, args.data_dir)
     m["sd_margin"], m["sd_total"] = 11.1, 17.4   # from the 2025-26 backtest
-    m["backtest"] = {"games": 1190, "mae_model": 8.8, "mae_market": 8.65, "ats_edge2": "287-242",
-                     "ats_edge2_pct": 54.3, "season": "2025-26 (Jan-Mar)"}
+    m["backtest"] = {"games": 1190, "mae_model": 8.8, "mae_market": 8.65, "ats_edge2": "270-238",
+                     "ats_edge2_pct": 53.1, "season": "2025-26 (Jan-Mar)",
+                     "early": "110-125 (47%) in Nov-Dec, so picks wait until teams have ~12 games"}
     out = Path(args.root) / "data" / "ratings_cbb.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(m, separators=(",", ":")))

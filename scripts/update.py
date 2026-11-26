@@ -483,7 +483,7 @@ def main():
                 proj = model.project(ev["home_team"], ev["away_team"])
                 if proj is None:
                     unmatched.update(n for n in (ev["home_team"], ev["away_team"]) if not model.team_id(n))
-                else:
+                elif proj["games"] >= cfg["model"].get("min_team_games", 0):
                     for p in plays:
                         if p["market"] == "spreads" and p["point"] is not None:
                             ml = -proj["margin"] if p["side"] == ev["home_team"] else proj["margin"]
@@ -548,7 +548,9 @@ def main():
                      "markets": cfg["markets"]},
         "plays": all_plays, "moves": moves, "games": games,
         "model_picks": sorted(model_picks, key=lambda q: (q["tier"] != "strong", -q["edge_pts"])),
-        "model_info": ({k: model.m.get(k) for k in ("asof", "games_played", "hca", "backtest")}
+        "model_info": ({**{k: model.m.get(k) for k in ("asof", "games_played", "hca", "backtest")},
+                        "min_games": cfg["model"].get("min_team_games", 0),
+                        "typical_games": int(statistics.median([t["games"] for t in model.m["teams"].values()]))}
                        if model else None),
     })
     if unmatched:
