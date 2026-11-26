@@ -128,7 +128,7 @@
 
 <script>
 const TZ = "America/Chicago";
-const state = { tab: "plays", sport: null, market: "ALL", data: null };
+const state = { tab: "plays", sport: null, market: "ALL", leanMkt: "ALL", data: null };
 
 const fmtTime = iso => new Date(iso).toLocaleString("en-US",
   { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" });
@@ -215,19 +215,19 @@ function median(a) { if (!a.length) return null; const s = [...a].sort((x, y) =>
 
 function modelCard(p) {
   const lean = p.tier === "lean";
-  const badge = lean ? `<span class="tier lean">EARLY LEAN${p.market_agrees ? " · MARKET AGREES" : ""}</span>`
+  const badge = lean ? `<span class="tier lean">${p.market === "totals" ? "TOTAL LEAN" : "EARLY LEAN"}${p.market_agrees ? " · MARKET AGREES" : ""}</span>`
     : p.tier === "strong" ? `<span class="tier strong">MODEL + MARKET</span>` : `<span class="tier rec">MODEL PICK</span>`;
   return `
     <div class="card ${lean ? "lean-card" : "rec-card " + (p.tier === "strong" ? "strong" : "rec")}">
       <div class="tier-row">${badge}<span class="units">${lean ? "No sizing" : `${p.units} unit${p.units === 1 ? "" : "s"}`}</span></div>
-      <div class="meta"><span>${fmtTime(p.commence)}</span><span>Spread</span></div>
+      <div class="meta"><span>${fmtTime(p.commence)}</span><span>${p.market === "totals" ? "Total" : "Spread"}</span></div>
       <div class="match">${esc(short(p.away))} @ ${esc(short(p.home))}</div>
-      <div class="bet">${esc(short(p.side))} ${pt(p.point)}<span class="odds">${odds(p.odds)}</span></div>
+      <div class="bet">${p.market === "totals" ? `${p.side} ${p.point}` : `${esc(short(p.side))} ${pt(p.point)}`}<span class="odds">${odds(p.odds)}</span></div>
       <div class="book">at <b>${esc(p.book)}</b></div>
       <div class="nums">
         <div class="ev">Edge<strong>${p.edge_pts} pts</strong></div>
-        <div>Model line<strong>${pt(p.model_line)}</strong></div>
-        <div>Cover %<strong>${Math.round(p.cover_prob * 100)}%</strong></div>
+        <div>${p.market === "totals" ? "Model total" : "Model line"}<strong>${p.market === "totals" ? p.model_line : pt(p.model_line)}</strong></div>
+        <div>${p.market === "totals" ? "Hit %" : "Cover %"}<strong>${Math.round(p.cover_prob * 100)}%</strong></div>
       </div>
       <ul class="why">${p.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul>
     </div>`;
@@ -238,7 +238,9 @@ function renderModel() {
   const info = state.data.model_info;
   if (!info) return `<div class="empty">The model hasn't run yet. It updates with the next scheduled refresh.</div>`;
   const all = (state.data.model_picks || []).filter(p => p.sport === state.sport);
-  const picks = all.filter(p => p.tier !== "lean"), leans = all.filter(p => p.tier === "lean");
+  const picks = all.filter(p => p.tier !== "lean");
+  const leans = all.filter(p => p.tier === "lean" && (state.leanMkt === "ALL" || p.market === state.leanMkt));
+  const lm = (v, l) => `<button data-leanmkt="${v}" class="${state.leanMkt === v ? "on" : ""}">${l}</button>`;
   const bt = info.backtest || {};
   const games = state.data.games.filter(g => g.sport === state.sport && g.model);
   const row = g => {
@@ -256,8 +258,9 @@ function renderModel() {
     : info.typical_games < info.min_games
       ? `<div class="empty small">Model picks start once teams have played about ${info.min_games} games (around early January); teams have played about ${info.typical_games} so far. Until then, see the early-season leans below.</div>`
       : `<div class="empty small">No spreads 2-6 points off our numbers right now.</div>`}
-  ${leans.length ? `<h2 class="sec">Early-season leans <span>${leans.length}</span></h2>
-  <p class="explain"><b>Low confidence, worth a closer look.</b> Spreads 2-6 points off our numbers while teams have played fewer than ${info.min_games} games. In testing, early-season picks like these went ${esc(bt.early || "below .500")}, so check injuries, lineups and matchups before acting. Leans the market also likes are listed first. They become Model Picks automatically once teams reach ${info.min_games} games.</p>
+  ${all.some(p => p.tier === "lean") ? `<h2 class="sec">Leans <span>${leans.length}</span></h2>
+  <div class="chips sub" id="leanchips">${lm("ALL", "All")}${lm("spreads", "Spreads")}${lm("totals", "Totals")}</div>
+  <p class="explain"><b>Low confidence, worth a closer look.</b> Spreads 2-6 points off our numbers while teams have played fewer than ${info.min_games} games, and totals 4-10 points off our projection (always leans: the model showed no edge on totals last season). In testing, early-season picks like these went ${esc(bt.early || "below .500")}, so check injuries, lineups and matchups before acting. Leans the market also likes are listed first. Spread leans become Model Picks automatically once teams reach ${info.min_games} games.</p>
   <div class="grid">${leans.map(modelCard).join("")}</div>` : ""}
   <h2 class="sec">All projections <span>${games.length}</span></h2>
   <p class="explain">Spreads shown for the home team. Edge = market minus model (positive = value on the home team). N = neutral site.</p>
@@ -337,6 +340,8 @@ function wire(groupId, attr, key) {
 }
 wire("tabs", "tab", "tab");
 document.getElementById("main").addEventListener("click", e => {
+  const lb = e.target.closest("#leanchips button");
+  if (lb) { state.leanMkt = lb.dataset.leanmkt; render(); return; }
   const b = e.target.closest("#mchips button"); if (!b) return;
   state.market = b.dataset.market; render();
 });
