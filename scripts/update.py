@@ -548,8 +548,7 @@ def main():
                      "markets": cfg["markets"]},
         "plays": all_plays, "moves": moves, "games": games,
         "model_picks": sorted(model_picks, key=lambda q: ({"strong": 0, "model": 1}.get(q["tier"], 2),
-                                                          q["market"] != "spreads", not q.get("market_agrees"),
-                                                          -q["edge_pts"])),
+                                                          q["market"] != "spreads", -q["edge_pts"])),
         "model_info": ({**{k: model.m.get(k) for k in ("asof", "games_played", "hca", "backtest")},
                         "min_games": cfg["model"].get("min_team_games", 0),
                         "typical_games": int(statistics.median([t["games"] for t in model.m["teams"].values()]))}
