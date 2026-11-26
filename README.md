@@ -1,8 +1,9 @@
-# Edge Board: CFB + CBB +EV plays and line movement
+# Hurst Strategy: CFB + CBB +EV plays and line movement
 
 A free, public site that:
 - **Finds +EV plays.** It takes the vig off Pinnacle's line (the sharpest book) to get a fair price, then flags any sportsbook paying more than that. If Pinnacle has no line, it uses a consensus of books instead.
 - **Highlights recommended plays.** Spreads and totals that pass a stricter filter: at least +2.5% EV against Pinnacle's no-vig line, a normal price (−150 to +150), and Pinnacle's line not moving against the play. Each one shows a bet size and the reasons it was picked. **STRONG PLAY** = +4% or more, or Pinnacle's line has moved toward the play while the book hasn't caught up (a "stale number"). Bet sizes use quarter-Kelly: 1 unit = 1% of bankroll, 2 units max.
+- **Model picks (college basketball).** `scripts/ratings.py` builds our own team ratings every run from free public box scores (sportsdataverse hoopR data): opponent-adjusted offense, defense and pace, plus home court, weighted toward recent games and anchored to last season early on. `scripts/model_plays.py` projects each game and flags spreads where the best line beats our number by 2-6 points. Tested on 1,190 games of 2025-26 against DraftKings closing lines: average miss 8.8 pts vs. 8.65 for the market; 287-242 (54.3%) ATS with 2+ pts of edge. Strongest when the market-based edge agrees ("MODEL + MARKET").
 - **Tracks line movement.** It saves the sharp line on every update and shows the move from the first line it captured ("open") to now. Moves get labeled BIG MOVE, STEAM (a quick move since the last update) and KEY NUMBER (crossing 3 or 7 in football).
 - **Line shop.** It shows every book's price for every game, with the best number highlighted.
 
@@ -86,7 +87,7 @@ When credits run low, the script stops before it hits zero (`min_credits_reserve
 | `max_off_number` | How far a book's number can sit from Pinnacle's and still be priced (≈ estimate) |
 | `days_ahead` | How far ahead to pull games |
 
-To rename the site, edit the `EDGE<span>BOARD</span>` text and the `<title>` in `site/index.html`.
+To rename the site, edit the `HURST<span>STRATEGY</span>` text and the `<title>` in `site/index.html`.
 
 ## Honest limitations
 - **"Open" is the first line we captured**, not the book's true opener. On the free plan we snapshot four times a day. True openers need a paid historical plan.

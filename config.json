@@ -1,8 +1,9 @@
 {
   "_notes": "Edit these settings any time. Costs on The Odds API = markets x sports per run (10 or fewer bookmakers count as 1 region). Empty responses (sport out of season) are free.",
-
-  "markets": ["spreads", "totals"],
-
+  "markets": [
+    "spreads",
+    "totals"
+  ],
   "bookmakers": [
     "pinnacle",
     "draftkings",
@@ -15,9 +16,7 @@
     "betonlineag",
     "lowvig"
   ],
-
   "sharp_book": "pinnacle",
-
   "sports": {
     "americanfootball_ncaaf": {
       "label": "CFB",
@@ -27,7 +26,12 @@
       "total_move_alert": 3.0,
       "spread_prob_per_point": 0.03,
       "total_prob_per_point": 0.02,
-      "key_numbers": [3, 7, 10, 14]
+      "key_numbers": [
+        3,
+        7,
+        10,
+        14
+      ]
     },
     "basketball_ncaab": {
       "label": "CBB",
@@ -40,9 +44,7 @@
       "key_numbers": []
     }
   },
-
   "min_ev": 0.015,
-
   "recommend": {
     "_notes": "Stricter filter for the Recommended section. All +EV plays still show below it.",
     "min_ev": 0.025,
@@ -60,5 +62,11 @@
   "min_books_for_consensus": 4,
   "min_credits_reserve": 12,
   "max_snapshots_per_game": 120,
-  "archive_after_hours": 6
+  "archive_after_hours": 6,
+  "model": {
+    "_notes": "College basketball ratings model. A model pick needs the best line to beat our projected spread by min_edge points. Bigger gaps than max_edge usually mean news the model can't see (injuries), so they're skipped.",
+    "min_edge": 2.0,
+    "min_team_games": 3,
+    "max_edge": 6.0
+  }
 }
