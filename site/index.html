@@ -32,6 +32,14 @@
   button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel);
     color: var(--muted); border-radius: 999px; padding: 6px 13px; font-size: 13.5px; font-weight: 600; }
   button.on { color: #06140c; background: var(--accent); border-color: var(--accent); }
+  .sportsw { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .sportsw button { border-radius: 12px; padding: 11px 12px; text-align: left; font-size: 15px; color: var(--text);
+    display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: center; background: var(--panel); }
+  .sportsw .ic { grid-row: span 2; font-size: 22px; }
+  .sportsw em { font-style: normal; font-size: 12px; font-weight: 500; color: var(--muted); }
+  .sportsw button.on { background: var(--accent); border-color: var(--accent); color: #06140c; }
+  .sportsw button.on em { color: #0b3d22; }
+  @media (max-width: 420px) { .sportsw button { font-size: 13.5px; } }
   .chips button.on { background: var(--panel2); color: var(--text); border-color: var(--muted); }
   main { max-width: 980px; margin: 0 auto; padding: 14px 16px 40px; }
   .explain { color: var(--muted); font-size: 13px; margin: 2px 0 14px; }
@@ -94,17 +102,16 @@
 <header>
   <div class="brand"><h1>EDGE<span>BOARD</span></h1><div class="tag">College football &amp; basketball · +EV plays · line movement</div></div>
   <div class="status" id="status">Loading…</div>
+  <div class="sportsw" id="chips">
+    <button data-sport="CFB"><span class="ic">🏈</span>Football<em id="n-CFB"></em></button>
+    <button data-sport="CBB"><span class="ic">🏀</span>Basketball<em id="n-CBB"></em></button>
+  </div>
 </header>
 <nav><div class="navin">
   <div class="tabs" id="tabs">
     <button data-tab="plays" class="on">+EV Plays</button>
     <button data-tab="moves">Line Moves</button>
     <button data-tab="games">Line Shop</button>
-  </div>
-  <div class="chips" id="chips">
-    <button data-sport="ALL" class="on">All</button>
-    <button data-sport="CFB">CFB</button>
-    <button data-sport="CBB">CBB</button>
   </div>
 </div></nav>
 <main id="main"></main>
@@ -115,7 +122,7 @@
 
 <script>
 const TZ = "America/Chicago";
-const state = { tab: "plays", sport: "ALL", market: "ALL", data: null };
+const state = { tab: "plays", sport: null, market: "ALL", data: null };
 
 const fmtTime = iso => new Date(iso).toLocaleString("en-US",
   { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" });
@@ -138,7 +145,7 @@ const short = t => {
   return t.split(" ").slice(0, -1).join(" ") || t;
 };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const bySport = arr => arr.filter(x => state.sport === "ALL" || x.sport === state.sport);
+const bySport = arr => arr.filter(x => x.sport === state.sport);
 const pill = s => `<span class="pill ${s.toLowerCase()}">${s}</span>`;
 
 function betLabel(p) {
@@ -153,7 +160,7 @@ function playCard(p) {
   return `
     <div class="card ${p.tier ? "rec-card " + p.tier : ""}">
       ${badge ? `<div class="tier-row">${badge}<span class="units">${p.units} unit${p.units === 1 ? "" : "s"}</span></div>` : ""}
-      <div class="meta"><span>${pill(p.sport)} &nbsp;${fmtTime(p.commence)}</span><span>${p.market === "h2h" ? "Moneyline" : p.market === "spreads" ? "Spread" : "Total"}</span></div>
+      <div class="meta"><span>${fmtTime(p.commence)}</span><span>${p.market === "h2h" ? "Moneyline" : p.market === "spreads" ? "Spread" : "Total"}</span></div>
       <div class="match">${esc(short(p.away))} @ ${esc(short(p.home))}</div>
       <div class="bet">${esc(betLabel(p))}<span class="odds">${odds(p.odds)}</span></div>
       <div class="book">at <b>${esc(p.book)}</b></div>
@@ -205,7 +212,7 @@ function renderMoves() {
   return `<p class="explain">Sharp line from the first capture to now. Spread shown for the home team. STEAM = sharp move since the last update.</p>
   <div class="grid">${moves.map(m => `
     <div class="card">
-      <div class="meta"><span>${pill(m.sport)} &nbsp;${fmtTime(m.commence)}</span><span>${m.market === "spread" ? "Spread" : "Total"}</span></div>
+      <div class="meta"><span>${fmtTime(m.commence)}</span><span>${m.market === "spread" ? "Spread" : "Total"}</span></div>
       <div class="match">${esc(short(m.away))} @ ${esc(short(m.home))}</div>
       <div class="move-row">
         <div>
@@ -240,7 +247,7 @@ function renderGames() {
   return `<p class="explain">Every book's price. Green = best available number/price.</p>
   <div class="grid">${games.map(g => `
     <div class="card game">
-      <div class="meta"><span>${pill(g.sport)} &nbsp;${fmtTime(g.commence)}</span></div>
+      <div class="meta"><span>${fmtTime(g.commence)}</span></div>
       <h3>${esc(short(g.away))} @ ${esc(short(g.home))}</h3>
       ${Object.entries(g.shop).map(([k, rows]) => `<div class="mkt">${names[k] || k}</div>${shopTable(rows, k)}`).join("")}
     </div>`).join("")}</div>`;
@@ -249,8 +256,13 @@ function renderGames() {
 function render() {
   const d = state.data;
   document.getElementById("status").innerHTML =
-    `Updated <b>${fmtTime(d.updated)}</b> CT (${ago(d.updated)}) · ${d.plays.length} plays · ${d.games.length} games` +
+    `Updated <b>${fmtTime(d.updated)}</b> CT (${ago(d.updated)})` +
     (d.sample ? ` · <span class="sample">SAMPLE DATA</span>` : "");
+  for (const sp of ["CFB", "CBB"]) {
+    const g = d.games.filter(x => x.sport === sp).length, r = d.plays.filter(x => x.sport === sp && x.tier).length;
+    document.getElementById("n-" + sp).textContent = g ? `${g} games${r ? ` · ${r} rec` : ""}` : "No games";
+  }
+  document.querySelectorAll("#chips button").forEach(b => b.classList.toggle("on", b.dataset.sport === state.sport));
   document.getElementById("main").innerHTML =
     state.tab === "plays" ? renderPlays() : state.tab === "moves" ? renderMoves() : renderGames();
 }
@@ -268,12 +280,21 @@ document.getElementById("main").addEventListener("click", e => {
   const b = e.target.closest("#mchips button"); if (!b) return;
   state.market = b.dataset.market; render();
 });
-wire("chips", "sport", "sport");
+document.getElementById("chips").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.sport = b.dataset.sport;
+  try { localStorage.setItem("edge-sport", state.sport); } catch (_) {}
+  render(); window.scrollTo({ top: 0 });
+});
 
 (async () => {
   try {
     state.data = window.__EDGE_DATA__ ||
       await (await fetch("data/latest.json?t=" + Date.now(), { cache: "no-store" })).json();
+    let saved = null;
+    try { saved = localStorage.getItem("edge-sport"); } catch (_) {}
+    const count = sp => state.data.games.filter(x => x.sport === sp).length;
+    state.sport = (saved && count(saved)) ? saved : (count("CBB") >= count("CFB") ? "CBB" : "CFB");
     render();
   } catch (e) {
     document.getElementById("status").textContent = "Couldn't load data yet. The first update may not have run.";
