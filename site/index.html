@@ -94,6 +94,14 @@
   .tabs { flex-wrap: wrap; }
   .tier.lean { background: #3a2c14; color: var(--warn); }
   .lean-card { border-style: dashed; border-color: #5a4a2a; }
+  td.neg { color: var(--hot); font-weight: 700; }
+  .res-row { display: grid; grid-template-columns: 76px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid #1d2530; align-items: start; }
+  .res-row:last-child { border-bottom: 0; }
+  .res { font-size: 10.5px; font-weight: 800; padding: 3px 7px; border-radius: 5px; letter-spacing: .5px; display: inline-block; }
+  .res.win { background: var(--accent); color: #06140c; } .res.loss { background: #3a1d1d; color: var(--hot); }
+  .res.push { background: var(--panel2); color: var(--text); } .res.pending { background: var(--panel2); color: var(--muted); }
+  .res-main { font-size: 14px; } .res-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .odds-sm { font-family: var(--mono); color: var(--muted); font-size: 12.5px; }
   .units { font: 700 13px var(--mono); color: var(--text); }
   .why { margin: 8px 0 0; padding-left: 17px; font-size: 12.5px; color: var(--muted); }
   .why li { margin: 2px 0; }
@@ -115,6 +123,7 @@
   <div class="tabs" id="tabs">
     <button data-tab="plays" class="on">+EV Plays</button>
     <button data-tab="model">Model Picks</button>
+    <button data-tab="results">Results</button>
     <button data-tab="moves">Line Moves</button>
     <button data-tab="games">Line Shop</button>
   </div>
@@ -128,7 +137,7 @@
 
 <script>
 const TZ = "America/Chicago";
-const state = { tab: "plays", sport: null, market: "ALL", leanMkt: "ALL", data: null };
+const state = { tab: "plays", sport: null, market: "ALL", leanMkt: "ALL", period: "today", data: null };
 
 const fmtTime = iso => new Date(iso).toLocaleString("en-US",
   { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" });
@@ -269,6 +278,40 @@ function renderModel() {
   ${games.map(row).join("")}</table></div>`;
 }
 
+function renderResults() {
+  const R = state.data.results;
+  if (!R) return `<div class="empty">Results start with the next update.</div>`;
+  const per = (R.periods[state.sport] || {})[state.period] || {};
+  const pb = (v, l) => `<button data-period="${v}" class="${state.period === v ? "on" : ""}">${l}</button>`;
+  const cats = Object.entries(R.categories).filter(([k]) => state.sport === "CBB" || k === "recommended");
+  const fmtU = u => (u > 0 ? "+" : "") + u.toFixed(2) + "u";
+  const rowsHtml = cats.map(([k, label]) => {
+    const r = per[k] || { w: 0, l: 0, p: 0, pending: 0, units: 0, pct: null };
+    const n = r.w + r.l + r.p;
+    return `<tr><td class="bk">${label}</td><td>${n ? `${r.w}-${r.l}${r.p ? "-" + r.p : ""}` : "—"}</td>
+      <td>${r.pct == null ? "—" : r.pct + "%"}</td><td class="${r.units > 0 ? "best" : r.units < 0 ? "neg" : ""}">${n ? fmtU(r.units) : "—"}</td>
+      <td>${r.pending || ""}</td></tr>`;
+  }).join("");
+  const day = state.period === "season" ? null : R.dates[state.period];
+  const list = day ? R.entries.filter(e => e.date === day && e.sport === state.sport) : [];
+  const badge = st => `<span class="res ${st}">${st === "pending" ? "PENDING" : st.toUpperCase()}</span>`;
+  const label = e => e.market === "totals" ? `${e.side} ${e.point}` : `${esc(short(e.side))} ${pt(e.point)}`;
+  const catName = k => R.categories[k] || k;
+  const listHtml = list.map(e => `
+    <div class="res-row">
+      <div>${badge(e.status)}</div>
+      <div class="res-main"><b>${label(e)}</b> <span class="odds-sm">${odds(e.odds)}</span> · ${esc(e.book || "")}
+        <div class="res-sub">${esc(short(e.away))} @ ${esc(short(e.home))} · ${catName(e.category)}${e.home_score != null ? ` · Final ${Math.round(e.away_score)}-${Math.round(e.home_score)}` : ` · ${fmtTime(e.commence)}`}</div>
+      </div>
+    </div>`).join("");
+  return `<div class="chips sub" id="periodchips">${pb("today", "Today")}${pb("yesterday", "Yesterday")}${pb("season", "Season")}</div>
+  <p class="explain">Every play is locked in at the line and price shown the first time it appeared on the site, then graded when the game goes final (usually within an hour of the finish). Units assume 1 unit risked per play at the listed odds.${R.first_date ? ` Tracking since ${esc(R.first_date)}.` : ""}</p>
+  <div class="card scroll"><table><tr><th>Category</th><th>Record</th><th>Win %</th><th>Units</th><th>Pending</th></tr>${rowsHtml}</table></div>
+  ${day ? `<h2 class="sec">${state.period === "today" ? "Today's" : "Yesterday's"} plays <span>${list.length}</span></h2>
+  ${list.length ? `<div class="card">${listHtml}</div>` : `<div class="empty small">No plays logged for this day.</div>`}` : ""}
+  <p class="explain">Break-even at standard −110 odds is 52.4%. Small samples swing a lot; judge the model on hundreds of plays, not one night.</p>`;
+}
+
 function renderMoves() {
   const moves = bySport(state.data.moves);
   if (!moves.length) return `<div class="empty">No line movement yet. Movement appears after a few updates.</div>`;
@@ -328,7 +371,7 @@ function render() {
   }
   document.querySelectorAll("#chips button").forEach(b => b.classList.toggle("on", b.dataset.sport === state.sport));
   document.getElementById("main").innerHTML =
-    state.tab === "plays" ? renderPlays() : state.tab === "model" ? renderModel() : state.tab === "moves" ? renderMoves() : renderGames();
+    state.tab === "plays" ? renderPlays() : state.tab === "model" ? renderModel() : state.tab === "results" ? renderResults() : state.tab === "moves" ? renderMoves() : renderGames();
 }
 
 function wire(groupId, attr, key) {
@@ -341,6 +384,8 @@ function wire(groupId, attr, key) {
 }
 wire("tabs", "tab", "tab");
 document.getElementById("main").addEventListener("click", e => {
+  const pbtn = e.target.closest("#periodchips button");
+  if (pbtn) { state.period = pbtn.dataset.period; render(); return; }
   const lb = e.target.closest("#leanchips button");
   if (lb) { state.leanMkt = lb.dataset.leanmkt; render(); return; }
   const b = e.target.closest("#mchips button"); if (!b) return;
