@@ -2,12 +2,9 @@ name: Update odds and publish site
 
 on:
   schedule:
-    # Times are UTC. These = 8am, 12pm, 4pm, 8pm Central (standard time).
-    # 4 runs/day x 2 sports x 2 markets = ~480 credits/month when both sports are in season.
-    - cron: "0 14 * * *"
-    - cron: "0 18 * * *"
-    - cron: "0 22 * * *"
-    - cron: "0 2 * * *"
+    # Times are UTC. Every 30 minutes, 8am to midnight Central (standard time).
+    - cron: "0,30 14-23 * * *"
+    - cron: "0,30 0-5 * * *"
   workflow_dispatch: {}   # lets you click "Run workflow" by hand
 
 permissions:
