@@ -29,6 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import model_plays  # noqa: E402
+import results  # noqa: E402
 
 API_URL = "https://api.the-odds-api.com/v4/sports/{sport}/odds/"
 
@@ -526,6 +527,27 @@ def main():
                 f.write(json.dumps(rec) + "\n")
             del history["events"][eid]
 
+    # results: lock in today's plays, grade finished games
+    log_path = root / "data" / "picks_log.json"
+    log = results.load(log_path)
+    if not log.get("backfilled"):
+        results.backfill(log, history["events"], root / "data" / "archive", None)  # everything since launch
+        log["backfilled"] = True
+    results.log_plays(log, model_picks, all_plays, iso(t_run))
+    try:
+        if args.sample:
+            import random as _r
+            results.grade(log, None, t_run, meta, sample_scores=lambda sport: [
+                {"id": e["event_id"], "completed": True, "home_team": e["home"], "away_team": e["away"],
+                 "scores": [{"name": e["home"], "score": str(_r.randint(55, 90))},
+                            {"name": e["away"], "score": str(_r.randint(55, 90))}]}
+                for e in log["entries"].values()])
+        else:
+            results.grade(log, api_key, t_run, meta)
+    except Exception as e:
+        print(f"[results] grading failed: {e}")
+    results.save(log_path, log)
+
     if args.sample:
         meta["sample_runs"] = run_index + 1
     meta["last_run"] = iso(t_run)
@@ -549,6 +571,7 @@ def main():
         "plays": all_plays, "moves": moves, "games": games,
         "model_picks": sorted(model_picks, key=lambda q: ({"strong": 0, "model": 1}.get(q["tier"], 2),
                                                           q["market"] != "spreads", -q["edge_pts"])),
+        "results": results.summary(log, t_run),
         "model_info": ({**{k: model.m.get(k) for k in ("asof", "games_played", "hca", "backtest")},
                         "min_games": cfg["model"].get("min_team_games", 0),
                         "typical_games": int(statistics.median([t["games"] for t in model.m["teams"].values()]))}
