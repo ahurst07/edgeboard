@@ -92,6 +92,8 @@
   .tier.rec { background: #17382a; color: var(--accent); }
   .nt { font-size: 10px; color: var(--blue); font-weight: 700; }
   .tabs { flex-wrap: wrap; }
+  .tier.lean { background: #3a2c14; color: var(--warn); }
+  .lean-card { border-style: dashed; border-color: #5a4a2a; }
   .units { font: 700 13px var(--mono); color: var(--text); }
   .why { margin: 8px 0 0; padding-left: 17px; font-size: 12.5px; color: var(--muted); }
   .why li { margin: 2px 0; }
@@ -212,10 +214,12 @@ function moveText(m) {
 function median(a) { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; }
 
 function modelCard(p) {
-  const badge = p.tier === "strong" ? `<span class="tier strong">MODEL + MARKET</span>` : `<span class="tier rec">MODEL PICK</span>`;
+  const lean = p.tier === "lean";
+  const badge = lean ? `<span class="tier lean">EARLY LEAN${p.market_agrees ? " · MARKET AGREES" : ""}</span>`
+    : p.tier === "strong" ? `<span class="tier strong">MODEL + MARKET</span>` : `<span class="tier rec">MODEL PICK</span>`;
   return `
-    <div class="card rec-card ${p.tier === "strong" ? "strong" : "rec"}">
-      <div class="tier-row">${badge}<span class="units">${p.units} unit${p.units === 1 ? "" : "s"}</span></div>
+    <div class="card ${lean ? "lean-card" : "rec-card " + (p.tier === "strong" ? "strong" : "rec")}">
+      <div class="tier-row">${badge}<span class="units">${lean ? "No sizing" : `${p.units} unit${p.units === 1 ? "" : "s"}`}</span></div>
       <div class="meta"><span>${fmtTime(p.commence)}</span><span>Spread</span></div>
       <div class="match">${esc(short(p.away))} @ ${esc(short(p.home))}</div>
       <div class="bet">${esc(short(p.side))} ${pt(p.point)}<span class="odds">${odds(p.odds)}</span></div>
@@ -233,7 +237,8 @@ function renderModel() {
   if (state.sport === "CFB") return `<div class="empty">The football model isn't built yet; model picks are basketball-only for now. Switch to Basketball above.</div>`;
   const info = state.data.model_info;
   if (!info) return `<div class="empty">The model hasn't run yet. It updates with the next scheduled refresh.</div>`;
-  const picks = (state.data.model_picks || []).filter(p => p.sport === state.sport);
+  const all = (state.data.model_picks || []).filter(p => p.sport === state.sport);
+  const picks = all.filter(p => p.tier !== "lean"), leans = all.filter(p => p.tier === "lean");
   const bt = info.backtest || {};
   const games = state.data.games.filter(g => g.sport === state.sport && g.model);
   const row = g => {
@@ -249,8 +254,11 @@ function renderModel() {
   <h2 class="sec">Model picks <span>${picks.length}</span></h2>
   ${picks.length ? `<div class="grid">${picks.map(modelCard).join("")}</div>`
     : info.typical_games < info.min_games
-      ? `<div class="empty small">Model picks start once teams have played about ${info.min_games} games (around early January); teams have played about ${info.typical_games} so far. In testing, early-season picks went ${esc(bt.early || "below .500")}. Projections below are for reference.</div>`
+      ? `<div class="empty small">Model picks start once teams have played about ${info.min_games} games (around early January); teams have played about ${info.typical_games} so far. Until then, see the early-season leans below.</div>`
       : `<div class="empty small">No spreads 2-6 points off our numbers right now.</div>`}
+  ${leans.length ? `<h2 class="sec">Early-season leans <span>${leans.length}</span></h2>
+  <p class="explain"><b>Low confidence, worth a closer look.</b> Spreads 2-6 points off our numbers while teams have played fewer than ${info.min_games} games. In testing, early-season picks like these went ${esc(bt.early || "below .500")}, so check injuries, lineups and matchups before acting. Leans the market also likes are listed first. They become Model Picks automatically once teams reach ${info.min_games} games.</p>
+  <div class="grid">${leans.map(modelCard).join("")}</div>` : ""}
   <h2 class="sec">All projections <span>${games.length}</span></h2>
   <p class="explain">Spreads shown for the home team. Edge = market minus model (positive = value on the home team). N = neutral site.</p>
   <div class="card scroll"><table><tr><th>Game</th><th>Model</th><th>Market</th><th>Edge</th><th>Model total</th><th>Market total</th></tr>
