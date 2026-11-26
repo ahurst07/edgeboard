@@ -90,6 +90,8 @@
   .tier { font-size: 11px; font-weight: 800; letter-spacing: .6px; padding: 3px 8px; border-radius: 6px; }
   .tier.strong { background: var(--accent); color: #06140c; }
   .tier.rec { background: #17382a; color: var(--accent); }
+  .nt { font-size: 10px; color: var(--blue); font-weight: 700; }
+  .tabs { flex-wrap: wrap; }
   .units { font: 700 13px var(--mono); color: var(--text); }
   .why { margin: 8px 0 0; padding-left: 17px; font-size: 12.5px; color: var(--muted); }
   .why li { margin: 2px 0; }
@@ -110,6 +112,7 @@
 <nav><div class="navin">
   <div class="tabs" id="tabs">
     <button data-tab="plays" class="on">+EV Plays</button>
+    <button data-tab="model">Model Picks</button>
     <button data-tab="moves">Line Moves</button>
     <button data-tab="games">Line Shop</button>
   </div>
@@ -117,6 +120,7 @@
 <main id="main"></main>
 <footer>
   <p><b>How it works:</b> we remove the vig from the sharpest market (Pinnacle, or a consensus of books when Pinnacle has no line) to get a fair price, then flag any sportsbook paying more than fair. "Open" means the first line we captured, not necessarily the true opener.</p>
+  <p><b>Model picks</b> come from our own college basketball ratings (opponent-adjusted offense, defense and pace from this season's box scores, via the free sportsdataverse hoopR data). They're compared with the best available line; the model can't see injuries or news.</p>
   <p>For information and entertainment only. Not betting advice; no outcome is guaranteed. Must be 21+ and located where sports betting is legal. Gambling problem? Call 1-800-GAMBLER.</p>
 </footer>
 
@@ -205,6 +209,51 @@ function moveText(m) {
   return `Moved toward ${short(toward)}`;
 }
 
+function median(a) { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; }
+
+function modelCard(p) {
+  const badge = p.tier === "strong" ? `<span class="tier strong">MODEL + MARKET</span>` : `<span class="tier rec">MODEL PICK</span>`;
+  return `
+    <div class="card rec-card ${p.tier === "strong" ? "strong" : "rec"}">
+      <div class="tier-row">${badge}<span class="units">${p.units} unit${p.units === 1 ? "" : "s"}</span></div>
+      <div class="meta"><span>${fmtTime(p.commence)}</span><span>Spread</span></div>
+      <div class="match">${esc(short(p.away))} @ ${esc(short(p.home))}</div>
+      <div class="bet">${esc(short(p.side))} ${pt(p.point)}<span class="odds">${odds(p.odds)}</span></div>
+      <div class="book">at <b>${esc(p.book)}</b></div>
+      <div class="nums">
+        <div class="ev">Edge<strong>${p.edge_pts} pts</strong></div>
+        <div>Model line<strong>${pt(p.model_line)}</strong></div>
+        <div>Cover %<strong>${Math.round(p.cover_prob * 100)}%</strong></div>
+      </div>
+      <ul class="why">${p.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul>
+    </div>`;
+}
+
+function renderModel() {
+  if (state.sport === "CFB") return `<div class="empty">The football model isn't built yet; model picks are basketball-only for now. Switch to Basketball above.</div>`;
+  const info = state.data.model_info;
+  if (!info) return `<div class="empty">The model hasn't run yet. It updates with the next scheduled refresh.</div>`;
+  const picks = (state.data.model_picks || []).filter(p => p.sport === state.sport);
+  const bt = info.backtest || {};
+  const games = state.data.games.filter(g => g.sport === state.sport && g.model);
+  const row = g => {
+    const hs = median((g.shop.spreads?.[g.home] || []).map(r => r.point).filter(x => x != null));
+    const ov = median((g.shop.totals?.Over || []).map(r => r.point).filter(x => x != null));
+    const ms = -g.model.margin, edge = hs == null ? null : Math.round((hs - ms) * 10) / 10;
+    return `<tr><td class="bk">${esc(short(g.away))} @ ${esc(short(g.home))}${g.model.neutral ? " <span class=\"nt\">N</span>" : ""}</td>
+      <td>${pt(Math.round(ms * 2) / 2)}</td><td>${hs == null ? "—" : pt(hs)}</td>
+      <td class="${edge != null && Math.abs(edge) >= 2 ? "best" : ""}">${edge == null ? "—" : (edge > 0 ? "+" : "") + edge}</td>
+      <td>${Math.round(g.model.total)}</td><td>${ov ?? "—"}</td></tr>`;
+  };
+  return `<p class="explain">Our own college basketball ratings: opponent-adjusted offense, defense and pace for every team, from this season's box scores. A pick needs the best available spread to beat our projection by 2+ points. <b>Tested on ${bt.games} games last season:</b> average miss ${bt.mae_model} pts vs. ${bt.mae_market} for the closing line; ${bt.ats_edge2} (${bt.ats_edge2_pct}%) against the spread with 2+ pts of edge. Strongest when the market agrees. Ratings through ${esc(info.asof)}.</p>
+  <h2 class="sec">Model picks <span>${picks.length}</span></h2>
+  ${picks.length ? `<div class="grid">${picks.map(modelCard).join("")}</div>` : `<div class="empty small">No spreads 2+ points off our numbers right now.</div>`}
+  <h2 class="sec">All projections <span>${games.length}</span></h2>
+  <p class="explain">Spreads shown for the home team. Edge = market minus model (positive = value on the home team). N = neutral site.</p>
+  <div class="card scroll"><table><tr><th>Game</th><th>Model</th><th>Market</th><th>Edge</th><th>Model total</th><th>Market total</th></tr>
+  ${games.map(row).join("")}</table></div>`;
+}
+
 function renderMoves() {
   const moves = bySport(state.data.moves);
   if (!moves.length) return `<div class="empty">No line movement yet. Movement appears after a few updates.</div>`;
@@ -264,7 +313,7 @@ function render() {
   }
   document.querySelectorAll("#chips button").forEach(b => b.classList.toggle("on", b.dataset.sport === state.sport));
   document.getElementById("main").innerHTML =
-    state.tab === "plays" ? renderPlays() : state.tab === "moves" ? renderMoves() : renderGames();
+    state.tab === "plays" ? renderPlays() : state.tab === "model" ? renderModel() : state.tab === "moves" ? renderMoves() : renderGames();
 }
 
 function wire(groupId, attr, key) {
