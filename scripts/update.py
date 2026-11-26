@@ -27,6 +27,9 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import model_plays  # noqa: E402
+
 API_URL = "https://api.the-odds-api.com/v4/sports/{sport}/odds/"
 
 BOOK_NAMES = {
@@ -376,10 +379,13 @@ def recommend(p, hist_event, cfg):
         return
     trend = round(line_trend(p, hist_event), 1)
     p["trend"] = trend
-    if p["ev"] < r["min_ev"]:
+    medge = p.get("model_edge")
+    mcfg = cfg.get("model", {})
+    model_ok = medge is not None and mcfg.get("min_edge", 99) <= medge <= mcfg.get("max_edge", 99)
+    if p["ev"] < r["min_ev"] and not model_ok:
         return
-    if r["require_exact_number"] and p["approx"] and trend < r["with_move_boost"]:
-        return  # off-number plays only count when the book is lagging a sharp move
+    if r["require_exact_number"] and p["approx"] and trend < r["with_move_boost"] and not model_ok:
+        return  # off-number plays only count when the book is lagging a sharp move (or the model agrees)
     if r["require_sharp_book"] and p["sharp_src"] != BOOK_NAMES.get(cfg["sharp_book"]):
         return
     if not (r["odds_min"] <= p["odds"] <= r["odds_max"]):
@@ -388,6 +394,11 @@ def recommend(p, hist_event, cfg):
         return  # the sharp market is moving away from this side, so skip it
     why = [f'+{p["ev"] * 100:.1f}% vs. {p["sharp_src"]} no-vig line']
     strong = p["ev"] >= r["strong_ev"]
+    if model_ok:
+        why.append(f"Our model agrees: projects {model_plays.fmt_pt(p['model_line'])} ({medge:g} pts of value)")
+        strong = True
+    elif medge is not None and medge < 0:
+        why.append(f"Note: our model leans the other way ({model_plays.fmt_pt(p['model_line'])})")
     if trend >= r["with_move_boost"]:
         why.append(f"Sharp line moved {trend:g} pt{'s' if trend != 1 else ''} this way; {p['book']} hasn't caught up"
                    if p["approx"] else f"Sharp line moved {trend:g} pt{'s' if trend != 1 else ''} this way since we first saw it")
@@ -424,6 +435,14 @@ def main():
         sys.exit("ODDS_API_KEY is not set. Add it as a GitHub secret (see README) or use --sample.")
 
     run_index = meta.get("sample_runs", 0)
+    model = None
+    mpath = root / "data" / "ratings_cbb.json"
+    if mpath.exists() and "model" in cfg:
+        try:
+            model = model_plays.Model(mpath)
+        except Exception as e:
+            print(f"[model] could not load ratings: {e}")
+    model_picks, unmatched = [], set()
     run_markets = cfg["markets"]
     run_cfg = cfg
     all_plays, games = [], []
@@ -459,6 +478,17 @@ def main():
                 snap["t"] = iso(t_run)
                 h["snapshots"].append(snap)
                 h["snapshots"] = h["snapshots"][-cfg["max_snapshots_per_game"]:]
+            proj = None
+            if model and sport_key == "basketball_ncaab":
+                proj = model.project(ev["home_team"], ev["away_team"])
+                if proj is None:
+                    unmatched.update(n for n in (ev["home_team"], ev["away_team"]) if not model.team_id(n))
+                else:
+                    for p in plays:
+                        if p["market"] == "spreads" and p["point"] is not None:
+                            ml = -proj["margin"] if p["side"] == ev["home_team"] else proj["margin"]
+                            p["model_line"] = round(ml, 1)
+                            p["model_edge"] = round(p["point"] - ml, 1)
             for p in plays:  # log every play we ever flagged, for grading later
                 k = f'{p["market"]}|{p["side"]}'
                 prev = h["plays_seen"].get(k)
@@ -468,7 +498,15 @@ def main():
                 recommend(p, h, cfg)
                 if p.get("tier"):
                     h["plays_seen"][k]["tier"] = p["tier"]
+            if proj:
+                picks = model_plays.evaluate(ev, shop, proj, cfg, model, plays, lambda q, h=h: line_trend(q, h))
+                model_picks.extend(picks)
+                for q in picks:
+                    h["plays_seen"][f'model|{q["side"]}'] = {"book": q["book"], "point": q["point"],
+                                                              "odds": q["odds"], "edge": q["edge_pts"],
+                                                              "t": iso(t_run)}
             games.append({"id": ev["id"], "sport": sport_cfg["label"], "commence": ev["commence_time"],
+                          "model": proj,
                           "home": ev["home_team"], "away": ev["away_team"], "shop": shop,
                           "move": movement(h, sport_cfg),
                           "sharp": {k: (v["src"] if v else None) for k, v in refs.items()}})
@@ -509,7 +547,12 @@ def main():
         "settings": {"min_ev": cfg["min_ev"], "sharp_book": BOOK_NAMES.get(cfg["sharp_book"]),
                      "markets": cfg["markets"]},
         "plays": all_plays, "moves": moves, "games": games,
+        "model_picks": sorted(model_picks, key=lambda q: (q["tier"] != "strong", -q["edge_pts"])),
+        "model_info": ({k: model.m.get(k) for k in ("asof", "games_played", "hca", "backtest")}
+                       if model else None),
     })
+    if unmatched:
+        print(f"[model] no rating match for: {sorted(unmatched)}")
     print(f"Done: {len(games)} games, {len(all_plays)} +EV plays, {len(moves)} line moves -> {out_path}")
 
 
