@@ -1,0 +1,55 @@
+name: Update odds and publish site
+
+on:
+  schedule:
+    # Times are UTC. These = 8am, 12pm, 4pm, 8pm Central (standard time).
+    # 4 runs/day x 2 sports x 2 markets = ~480 credits/month when both sports are in season.
+    - cron: "0 14 * * *"
+    - cron: "0 18 * * *"
+    - cron: "0 22 * * *"
+    - cron: "0 2 * * *"
+  workflow_dispatch: {}   # lets you click "Run workflow" by hand
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: odds-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pull lines and find edges
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python scripts/update.py
+
+      - name: Save line history to the repo
+        run: |
+          git config user.name "odds-bot"
+          git config user.email "odds-bot@users.noreply.github.com"
+          git add data site/data
+          git diff --cached --quiet || git commit -m "Odds update $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
