@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Board — College Football & Basketball +EV Plays</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Free college football and college basketball +EV plays and line movement, updated through the day.">
+<style>
+  :root {
+    --bg: #0d1117; --panel: #151b23; --panel2: #1c2430; --line: #2a3442;
+    --text: #e8edf3; --muted: #8b97a7; --accent: #3ddc84; --accent-dim: #1f6f45;
+    --warn: #ffb547; --hot: #ff5d5d; --blue: #5aa9ff;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 22px 16px 10px; max-width: 980px; margin: 0 auto; }
+  .brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .brand h1 { margin: 0; font-size: 26px; letter-spacing: .5px; font-weight: 800; }
+  .brand h1 span { color: var(--accent); }
+  .tag { color: var(--muted); font-size: 13px; }
+  .status { margin-top: 6px; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .status b { color: var(--text); font-weight: 600; }
+  .sample { color: var(--warn); }
+  nav { position: sticky; top: 0; z-index: 5; background: rgba(13,17,23,.94);
+    backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+  .navin { max-width: 980px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 8px;
+    flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .tabs, .chips { display: flex; gap: 6px; }
+  button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel);
+    color: var(--muted); border-radius: 999px; padding: 6px 13px; font-size: 13.5px; font-weight: 600; }
+  button.on { color: #06140c; background: var(--accent); border-color: var(--accent); }
+  .chips button.on { background: var(--panel2); color: var(--text); border-color: var(--muted); }
+  main { max-width: 980px; margin: 0 auto; padding: 14px 16px 40px; }
+  .explain { color: var(--muted); font-size: 13px; margin: 2px 0 14px; }
+  .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; }
+  .meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .pill { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 6px; background: var(--panel2);
+    color: var(--muted); letter-spacing: .4px; }
+  .pill.cfb { color: #f3c969; } .pill.cbb { color: var(--blue); }
+  .match { margin: 6px 0 8px; font-size: 13.5px; color: var(--muted); }
+  .bet { font-size: 18px; font-weight: 750; }
+  .bet .odds { font-family: var(--mono); color: var(--accent); margin-left: 4px; }
+  .book { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .book b { color: var(--text); }
+  .nums { display: flex; gap: 14px; margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--line); }
+  .nums div { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .nums strong { display: block; font: 600 15px var(--mono); color: var(--text); text-transform: none; letter-spacing: 0; }
+  .ev strong { color: var(--accent); }
+  .approx { color: var(--warn); font-size: 11.5px; margin-top: 7px; }
+  .also { color: var(--muted); font-size: 11.5px; margin-top: 4px; }
+  .move-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+  .move-big { font: 700 22px var(--mono); }
+  .up { color: var(--accent); } .down { color: var(--hot); }
+  .flags { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+  .flag { font-size: 10.5px; font-weight: 800; padding: 2px 6px; border-radius: 5px; letter-spacing: .5px; }
+  .flag.big { background: #3a1d1d; color: var(--hot); }
+  .flag.steam { background: #3a2c14; color: var(--warn); }
+  .flag.key { background: #16293d; color: var(--blue); }
+  .path { font: 13px var(--mono); color: var(--muted); margin-top: 4px; }
+  .path b { color: var(--text); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .4px; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  td { padding: 5px 4px; border-bottom: 1px solid #1d2530; font-family: var(--mono); white-space: nowrap; }
+  td.best { color: var(--accent); font-weight: 700; }
+  td.bk { font-family: inherit; color: var(--muted); }
+  .game h3 { margin: 4px 0 8px; font-size: 15px; }
+  .mkt { margin-top: 10px; font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: .4px; }
+  .scroll { overflow-x: auto; }
+  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+  .chips.sub { margin: 0 0 12px; flex-wrap: wrap; }
+  .sec { font-size: 17px; margin: 18px 0 4px; display: flex; align-items: center; gap: 8px; }
+  .sec span { font: 600 12px var(--mono); color: var(--muted); background: var(--panel2); padding: 1px 7px; border-radius: 6px; }
+  .empty.small { padding: 14px 0; text-align: left; font-size: 13.5px; }
+  .rec-card.rec { border-color: var(--accent-dim); }
+  .rec-card.strong { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .tier-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .tier { font-size: 11px; font-weight: 800; letter-spacing: .6px; padding: 3px 8px; border-radius: 6px; }
+  .tier.strong { background: var(--accent); color: #06140c; }
+  .tier.rec { background: #17382a; color: var(--accent); }
+  .units { font: 700 13px var(--mono); color: var(--text); }
+  .why { margin: 8px 0 0; padding-left: 17px; font-size: 12.5px; color: var(--muted); }
+  .why li { margin: 2px 0; }
+  footer { max-width: 980px; margin: 0 auto; padding: 18px 16px 40px; color: var(--muted); font-size: 12px;
+    border-top: 1px solid var(--line); }
+  footer p { margin: 6px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><h1>EDGE<span>BOARD</span></h1><div class="tag">College football &amp; basketball · +EV plays · line movement</div></div>
+  <div class="status" id="status">Loading…</div>
+</header>
+<nav><div class="navin">
+  <div class="tabs" id="tabs">
+    <button data-tab="plays" class="on">+EV Plays</button>
+    <button data-tab="moves">Line Moves</button>
+    <button data-tab="games">Line Shop</button>
+  </div>
+  <div class="chips" id="chips">
+    <button data-sport="ALL" class="on">All</button>
+    <button data-sport="CFB">CFB</button>
+    <button data-sport="CBB">CBB</button>
+  </div>
+</div></nav>
+<main id="main"></main>
+<footer>
+  <p><b>How it works:</b> we remove the vig from the sharpest market (Pinnacle, or a consensus of books when Pinnacle has no line) to get a fair price, then flag any sportsbook paying more than fair. "Open" means the first line we captured, not necessarily the true opener.</p>
+  <p>For information and entertainment only. Not betting advice; no outcome is guaranteed. Must be 21+ and located where sports betting is legal. Gambling problem? Call 1-800-GAMBLER.</p>
+</footer>
+
+<script>
+const TZ = "America/Chicago";
+const state = { tab: "plays", sport: "ALL", market: "ALL", data: null };
+
+const fmtTime = iso => new Date(iso).toLocaleString("en-US",
+  { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" });
+const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  return m < 60 ? `${m} min ago` : `${Math.round(m / 60)} hr ago`; };
+const odds = o => o == null ? "—" : (o > 0 ? "+" + o : "" + o);
+const pt = p => p == null ? "" : (p > 0 ? "+" + p : (p === 0 ? "PK" : "" + p));
+// "Iowa State Cyclones" -> "Iowa State". Two-word mascots are listed so "Minnesota Golden Gophers" -> "Minnesota".
+const TWO_WORD = ["Golden Gophers","Fighting Illini","Golden Eagles","Blue Devils","Tar Heels","Crimson Tide",
+  "Nittany Lions","Red Raiders","Sun Devils","Horned Frogs","Yellow Jackets","Demon Deacons","Fighting Irish",
+  "Scarlet Knights","Golden Bears","Mean Green","Green Wave","Blue Raiders","Rainbow Warriors","Golden Flashes",
+  "Black Knights","Red Wolves","Ragin Cajuns","Thundering Herd","Golden Hurricane","Mountain Hawks","Blue Hens",
+  "Great Danes","Red Storm","Golden Griffins","Purple Eagles","Big Red","Big Green","Fighting Hawks","River Hawks",
+  "Golden Grizzlies","Golden Lions","Golden Panthers","Black Bears","Fighting Camels","Delta Devils","Purple Aces",
+  "Running Rebels","Wolf Pack","Blue Demons","Golden Hurricanes","Red Foxes","Golden Rams","Mountain Hawks",
+  "Blue Jays","Fighting Bees","Golden Knights","Sea Hawks","Mocs","Red Hawks","Lumberjacks"];
+const short = t => {
+  const two = TWO_WORD.find(m => t.endsWith(" " + m));
+  if (two) return t.slice(0, -(two.length + 1));
+  return t.split(" ").slice(0, -1).join(" ") || t;
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const bySport = arr => arr.filter(x => state.sport === "ALL" || x.sport === state.sport);
+const pill = s => `<span class="pill ${s.toLowerCase()}">${s}</span>`;
+
+function betLabel(p) {
+  if (p.market === "totals") return `${p.side} ${p.point}`;
+  if (p.market === "h2h") return `${short(p.side)} ML`;
+  return `${short(p.side)} ${pt(p.point)}`;
+}
+
+function playCard(p) {
+  const badge = p.tier === "strong" ? `<span class="tier strong">STRONG PLAY</span>`
+    : p.tier === "rec" ? `<span class="tier rec">RECOMMENDED</span>` : "";
+  return `
+    <div class="card ${p.tier ? "rec-card " + p.tier : ""}">
+      ${badge ? `<div class="tier-row">${badge}<span class="units">${p.units} unit${p.units === 1 ? "" : "s"}</span></div>` : ""}
+      <div class="meta"><span>${pill(p.sport)} &nbsp;${fmtTime(p.commence)}</span><span>${p.market === "h2h" ? "Moneyline" : p.market === "spreads" ? "Spread" : "Total"}</span></div>
+      <div class="match">${esc(short(p.away))} @ ${esc(short(p.home))}</div>
+      <div class="bet">${esc(betLabel(p))}<span class="odds">${odds(p.odds)}</span></div>
+      <div class="book">at <b>${esc(p.book)}</b></div>
+      <div class="nums">
+        <div class="ev">EV<strong>+${(p.ev * 100).toFixed(1)}%</strong></div>
+        <div>Fair odds<strong>${odds(p.fair_odds)}</strong></div>
+        <div>${esc(p.sharp_src)}<strong>${p.market === "h2h" ? "—" : (p.market === "totals" ? p.sharp_point : pt(p.sharp_point))}</strong></div>
+      </div>
+      ${p.why && p.why.length ? `<ul class="why">${p.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
+      ${p.approx ? `<div class="approx">≈ Different number than the sharp line; EV is an estimate.</div>` : ""}
+      ${!p.tier && p.others && p.others.length ? `<div class="also">Also +EV at: ${esc(p.others.join(", "))}</div>` : ""}
+    </div>`;
+}
+
+function renderPlays() {
+  const plays = bySport(state.data.plays).filter(p => state.market === "ALL" || p.market === state.market);
+  const recs = plays.filter(p => p.tier), rest = plays.filter(p => !p.tier);
+  const mk = (v, l) => `<button data-market="${v}" class="${state.market === v ? "on" : ""}">${l}</button>`;
+  const filter = `<div class="chips sub" id="mchips">${mk("ALL", "All bets")}${mk("spreads", "Spreads")}${mk("totals", "Totals")}</div>`;
+  if (!plays.length) return filter + `<div class="empty">No +EV plays right now. Check back after the next update.</div>`;
+  return `${filter}
+  <h2 class="sec">Recommended plays <span>${recs.length}</span></h2>
+  <p class="explain">Our strictest filter: at least +2.5% EV against Pinnacle's no-vig line, a normal price (−150 to +150), and the sharp line not moving against it. STRONG = +4% or more, or the sharp line is moving our way. Units use quarter-Kelly (1 unit = 1% of bankroll, max 2).</p>
+  ${recs.length ? `<div class="grid">${recs.map(playCard).join("")}</div>`
+    : `<div class="empty small">Nothing meets the bar right now. That's normal; good plays are rare.</div>`}
+  ${rest.length ? `<h2 class="sec">Other +EV plays <span>${rest.length}</span></h2>
+  <p class="explain">Priced above fair, but smaller edges or estimated numbers. EV = expected return per $100 risked, long run.</p>
+  <div class="grid">${rest.map(playCard).join("")}</div>` : ""}`;
+}
+
+function spark(series) {
+  if (!series || series.length < 2) return "";
+  const w = 90, h = 28, min = Math.min(...series), max = Math.max(...series), r = max - min || 1;
+  const pts = series.map((v, i) => `${(i / (series.length - 1)) * w},${h - 3 - ((v - min) / r) * (h - 6)}`).join(" ");
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="#5aa9ff" stroke-width="2" stroke-linejoin="round"/></svg>`;
+}
+
+function moveText(m) {
+  if (m.market === "total") return m.move > 0 ? "Total up — money on the Over" : "Total down — money on the Under";
+  // spread is from the home team's view: more negative = home more favored
+  const toward = m.move < 0 ? m.home : m.away;
+  return `Moved toward ${short(toward)}`;
+}
+
+function renderMoves() {
+  const moves = bySport(state.data.moves);
+  if (!moves.length) return `<div class="empty">No line movement yet. Movement appears after a few updates.</div>`;
+  const label = { big: "BIG MOVE", steam: "STEAM", key: "KEY NUMBER" };
+  return `<p class="explain">Sharp line from the first capture to now. Spread shown for the home team. STEAM = sharp move since the last update.</p>
+  <div class="grid">${moves.map(m => `
+    <div class="card">
+      <div class="meta"><span>${pill(m.sport)} &nbsp;${fmtTime(m.commence)}</span><span>${m.market === "spread" ? "Spread" : "Total"}</span></div>
+      <div class="match">${esc(short(m.away))} @ ${esc(short(m.home))}</div>
+      <div class="move-row">
+        <div>
+          <div class="move-big ${m.move < 0 ? "down" : "up"}">${m.move > 0 ? "+" : ""}${m.move}</div>
+          <div class="path">${m.market === "spread" ? pt(m.open) : m.open} → <b>${m.market === "spread" ? pt(m.now) : m.now}</b></div>
+        </div>
+        ${spark(m.series)}
+      </div>
+      <div class="book">${esc(moveText(m))}</div>
+      ${m.flags.length ? `<div class="flags">${m.flags.map(f => `<span class="flag ${f}">${label[f]}</span>`).join("")}</div>` : ""}
+    </div>`).join("")}</div>`;
+}
+
+function shopTable(rows, mkey) {
+  const sides = Object.keys(rows);
+  const books = [...new Set(sides.flatMap(s => rows[s].map(r => r.book)))];
+  const cell = (s, b) => {
+    const r = rows[s].find(x => x.book === b);
+    if (!r) return `<td>—</td>`;
+    const line = mkey === "h2h" ? "" : (mkey === "totals" ? r.point + " " : pt(r.point) + " ");
+    return `<td class="${r.best ? "best" : ""}">${line}${odds(r.odds)}</td>`;
+  };
+  const head = s => mkey === "totals" ? s : short(s);
+  return `<div class="scroll"><table><tr><th>Book</th>${sides.map(s => `<th>${esc(head(s))}</th>`).join("")}</tr>
+    ${books.map(b => `<tr><td class="bk">${esc(b)}</td>${sides.map(s => cell(s, b)).join("")}</tr>`).join("")}</table></div>`;
+}
+
+function renderGames() {
+  const games = bySport(state.data.games);
+  if (!games.length) return `<div class="empty">No games in the window.</div>`;
+  const names = { spreads: "SPREAD", totals: "TOTAL", h2h: "MONEYLINE" };
+  return `<p class="explain">Every book's price. Green = best available number/price.</p>
+  <div class="grid">${games.map(g => `
+    <div class="card game">
+      <div class="meta"><span>${pill(g.sport)} &nbsp;${fmtTime(g.commence)}</span></div>
+      <h3>${esc(short(g.away))} @ ${esc(short(g.home))}</h3>
+      ${Object.entries(g.shop).map(([k, rows]) => `<div class="mkt">${names[k] || k}</div>${shopTable(rows, k)}`).join("")}
+    </div>`).join("")}</div>`;
+}
+
+function render() {
+  const d = state.data;
+  document.getElementById("status").innerHTML =
+    `Updated <b>${fmtTime(d.updated)}</b> CT (${ago(d.updated)}) · ${d.plays.length} plays · ${d.games.length} games` +
+    (d.sample ? ` · <span class="sample">SAMPLE DATA</span>` : "");
+  document.getElementById("main").innerHTML =
+    state.tab === "plays" ? renderPlays() : state.tab === "moves" ? renderMoves() : renderGames();
+}
+
+function wire(groupId, attr, key) {
+  document.getElementById(groupId).addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    state[key] = b.dataset[attr];
+    [...e.currentTarget.children].forEach(x => x.classList.toggle("on", x === b));
+    render();
+  });
+}
+wire("tabs", "tab", "tab");
+document.getElementById("main").addEventListener("click", e => {
+  const b = e.target.closest("#mchips button"); if (!b) return;
+  state.market = b.dataset.market; render();
+});
+wire("chips", "sport", "sport");
+
+(async () => {
+  try {
+    state.data = window.__EDGE_DATA__ ||
+      await (await fetch("data/latest.json?t=" + Date.now(), { cache: "no-store" })).json();
+    render();
+  } catch (e) {
+    document.getElementById("status").textContent = "Couldn't load data yet. The first update may not have run.";
+  }
+})();
+</script>
+</body>
+</html>
