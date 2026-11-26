@@ -239,7 +239,8 @@ function renderModel() {
   if (!info) return `<div class="empty">The model hasn't run yet. It updates with the next scheduled refresh.</div>`;
   const all = (state.data.model_picks || []).filter(p => p.sport === state.sport);
   const picks = all.filter(p => p.tier !== "lean");
-  const leans = all.filter(p => p.tier === "lean" && (state.leanMkt === "ALL" || p.market === state.leanMkt));
+  const leans = all.filter(p => p.tier === "lean" && (state.leanMkt === "ALL" || p.market === state.leanMkt))
+    .sort((a, b) => (a.market === b.market ? 0 : a.market === "spreads" ? -1 : 1) || b.edge_pts - a.edge_pts);
   const lm = (v, l) => `<button data-leanmkt="${v}" class="${state.leanMkt === v ? "on" : ""}">${l}</button>`;
   const bt = info.backtest || {};
   const games = state.data.games.filter(g => g.sport === state.sport && g.model);
@@ -260,7 +261,7 @@ function renderModel() {
       : `<div class="empty small">No spreads 2-6 points off our numbers right now.</div>`}
   ${all.some(p => p.tier === "lean") ? `<h2 class="sec">Leans <span>${leans.length}</span></h2>
   <div class="chips sub" id="leanchips">${lm("ALL", "All")}${lm("spreads", "Spreads")}${lm("totals", "Totals")}</div>
-  <p class="explain"><b>Low confidence, worth a closer look.</b> Spreads 2-6 points off our numbers while teams have played fewer than ${info.min_games} games, and totals 4-10 points off our projection (always leans: the model showed no edge on totals last season). In testing, early-season picks like these went ${esc(bt.early || "below .500")}, so check injuries, lineups and matchups before acting. Leans the market also likes are listed first. Spread leans become Model Picks automatically once teams reach ${info.min_games} games.</p>
+  <p class="explain"><b>Low confidence, worth a closer look.</b> Spreads 2-6 points off our numbers while teams have played fewer than ${info.min_games} games, and totals 4-10 points off our projection (always leans: the model showed no edge on totals last season). In testing, early-season picks like these went ${esc(bt.early || "below .500")}, so check injuries, lineups and matchups before acting. Sorted from biggest gap to smallest (spreads, then totals). Spread leans become Model Picks automatically once teams reach ${info.min_games} games.</p>
   <div class="grid">${leans.map(modelCard).join("")}</div>` : ""}
   <h2 class="sec">All projections <span>${games.length}</span></h2>
   <p class="explain">Spreads shown for the home team. Edge = market minus model (positive = value on the home team). N = neutral site.</p>
