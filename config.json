@@ -1,0 +1,64 @@
+{
+  "_notes": "Edit these settings any time. Costs on The Odds API = markets x sports per run (10 or fewer bookmakers count as 1 region). Empty responses (sport out of season) are free.",
+
+  "markets": ["spreads", "totals"],
+
+  "bookmakers": [
+    "pinnacle",
+    "draftkings",
+    "fanduel",
+    "betmgm",
+    "espnbet",
+    "betrivers",
+    "hardrockbet",
+    "bovada",
+    "betonlineag",
+    "lowvig"
+  ],
+
+  "sharp_book": "pinnacle",
+
+  "sports": {
+    "americanfootball_ncaaf": {
+      "label": "CFB",
+      "name": "College Football",
+      "days_ahead": 7,
+      "spread_move_alert": 2.0,
+      "total_move_alert": 3.0,
+      "spread_prob_per_point": 0.03,
+      "total_prob_per_point": 0.02,
+      "key_numbers": [3, 7, 10, 14]
+    },
+    "basketball_ncaab": {
+      "label": "CBB",
+      "name": "College Basketball",
+      "days_ahead": 2,
+      "spread_move_alert": 1.5,
+      "total_move_alert": 3.0,
+      "spread_prob_per_point": 0.03,
+      "total_prob_per_point": 0.02,
+      "key_numbers": []
+    }
+  },
+
+  "min_ev": 0.015,
+
+  "recommend": {
+    "_notes": "Stricter filter for the Recommended section. All +EV plays still show below it.",
+    "min_ev": 0.025,
+    "strong_ev": 0.04,
+    "require_exact_number": true,
+    "require_sharp_book": true,
+    "odds_min": -150,
+    "odds_max": 150,
+    "against_move_block": 1.0,
+    "with_move_boost": 0.5,
+    "kelly_fraction": 0.25,
+    "max_units": 2
+  },
+  "max_off_number": 1.5,
+  "min_books_for_consensus": 4,
+  "min_credits_reserve": 12,
+  "max_snapshots_per_game": 120,
+  "archive_after_hours": 6
+}
